@@ -94,3 +94,36 @@ print(gen.send(10))    # Output: "Got 10" (x = 10 inside generator)
 # Send another value
 print(gen.send(20))    # Output: "Final: 20" (y = 20 inside generator)
 ```
+
+### Socket, blocking and non-blocking
+???
+
+### Event loop 事件循环
+最基本的事件循环非常简单，创建一个包含事件或消息列表的队列，然后启动循环，在消息进入队列的时候一次处理一条消息
+```python
+from collections import deque
+
+messages = deque()
+
+while True:
+    if messages:
+        message = messages.pop()
+        process_message(message)
+```
+在事件循环的每次接待中，检查是否有I/O操作已经完成，如果有，将唤醒任何暂停的任务，并让他们完成运行。
+```python
+# Example task
+def make_request():
+    cpu_bound_setup()
+    io_bound_web_request()
+    cpu_bound_postprocess()
+
+task_one = make_request()
+task_two = make_request()
+task_three = make_request()
+```
+```
+task 1: | cpu_bound | wait_I/O_bound | cpu_bound_postprocess
+task 2: | wait      | cpu_bound | wait_I/O_bound            | cpu_bound_postprocess
+task 3: | wait                  | cpu_bound | wait_I/O_bound                        | cpu_bound_postprocess
+```

@@ -29,3 +29,8 @@ main() -> pause main() -> resume main() -> pause main() -> resume main()
 so far same to normal python execution.
 
 ### Use task/event loop to achieve parallelism
+
+
+### Cancel task and timeout
+- Use `cancel` method to cancel any task object, and throw `CancelledError`
+- 

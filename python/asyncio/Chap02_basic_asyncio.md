@@ -66,5 +66,47 @@ corotine future
            \
            task
 ```
+#### Pitfalls，常见两个错误
+- 尝试在不使用多处理的情况下，在任务或者协程中运行CPU密集型代码
+- 使用阻塞I/O密集型API而不使用多线程。
+  - 通常来说大多数API都是blocking的，无法和asyncio一起使用
+  - 需要使用支持协程，并利用nonblocking socket的库
+  - 或者使用线程池来配合blocking库使用
+
+### Manually create and access event loop
+
+Create event loop
+```python
+import asyncio
+
+async def main():
+    await asyncio.sleep(1)
+
+loop = asyncio.new_event_loop()
+
+try:
+    loop.run_until_complete(main())
+finally:
+    loop.close()  # 关闭事件循环，释放资源
+                  # 写在finally中，这样任何exception都不会阻止我们关闭。
+```
+
+Access event loop
+```python
+import asyncio
+
+def call_later():
+    print("I am being called in the future!")
+
+async def main():
+    loop = asyncio.get_running_loop()
+    loop.call_soon(call_later)
+    await delay(1)
+
+asyncio.run(main())
+```
 
 
+### Debug
+- Use `asyncio.run(main(), debug=True)` to enable debug mode
+- use `loop.slow_callback_duration = .250` to adjust threshold.

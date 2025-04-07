@@ -11,6 +11,22 @@ server_address = ('127.0.0.1', 8000)
 server_socket.bind(server_address)
 server_socket.listen()  # listen for connection
 
-connection, client_address = server_socket.accept()  # this method will block until we get a connection
-print(f"I got a connection from {client_address}")  # "assign the client PO box")
-      
+try:
+    connection, client_address = server_socket.accept()  # this method will block until we get a connection
+    print(f"I got a connection from {client_address}")  # "assign the client PO box")
+
+    buffer = b''
+    connection.sendall(b"Type anything!\r\n")
+
+    while buffer[-2:] != b'\r\n':
+        data = connection.recv(2)  # receive from client
+        if not data:
+            break
+        else:
+            print(f"I got data: {data}!")
+            buffer = buffer + data
+    print(f"All the data is: {buffer}")
+    connection.sendall(f"You have just typed: \n{buffer}\r\n".encode())  # send back to client
+
+finally:
+    server_socket.close()

@@ -76,4 +76,10 @@ class _GatheringFuture(asyncio.Future):
 
 - `asyncio.gather(*tasks, return_exceptions=True)`
 
-x
+### asyncio.as_completed
+
+- 适合尽快获得结果并处理
+- 缺点：
+  - 由于运行顺序non deterministic，不知道当前是什么任务
+  - 异常时不知道后台哪些任务仍在运行，also caused by non determinism
+  - 

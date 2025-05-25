@@ -1,3 +1,4 @@
+import logging
 import asyncio
 import aiohttp
 from aiohttp import ClientSession
@@ -58,8 +59,112 @@ async def handle_except_main():
         print(f'Finished successfully: {successful_results}')
         print(f'Threw exceptions: {exceptions}')
 
+@async_timed()
+# usage of as_completed
+# this also have better exception handling
+async def process_req_when_finish():
+    async with aiohttp.ClientSession() as session:
+        fetchers = [
+            fetch_status(session, 'https://www.example.com', 1),
+            fetch_status(session, 'https://www.example.com', 1),
+            fetch_status(session, 'https://www.example.com', 10),
+        ]
+        for finished_task in asyncio.as_completed(fetchers):
+            print(await finished_task)
+
+@async_timed()
+# as_completed timeout
+async def process_req_with_timeout():
+    async with aiohttp.ClientSession() as session:
+        fetchers = [
+            fetch_status(session, 'https://www.example.com', 1),
+            fetch_status(session, 'https://www.example.com', 10),
+            fetch_status(session, 'https://www.example.com', 10),
+        ]
+
+        for done_task in asyncio.as_completed(fetchers, timeout=9):
+            try:
+                result = await done_task
+                print(result)
+            except asyncio.TimeoutError:
+                print('Time out error')
+        
+        for task in asyncio.tasks.all_tasks():
+            print(task)
+
+@async_timed()
+async def finer_grained_control_with_wait():
+    async with aiohttp.ClientSession() as session:
+        fetchers = [
+            asyncio.create_task(fetch_status(session, 'https://www.example.com')),
+            asyncio.create_task(fetch_status(session, 'https://www.example.com')),
+            asyncio.create_task(fetch_status(session, 'https://www.example.com')),
+        ]
+        done, pending = await asyncio.wait(fetchers)
+
+        print(f"Done task count: {len(done)}")
+        print(f"Pending task count: {len(pending)}")
+
+        for done_task in done:
+            result = await done_task
+            print(result)
+
+
+@async_timed()
+async def exception_handling_with_wait():
+    async with aiohttp.ClientSession() as session:
+        good_request = fetch_status(session, 'https://www.example.com')
+        bad_request = fetch_status(session, 'python://bad', 10)
+
+        fetchers = [
+            asyncio.create_task(good_request),
+            asyncio.create_task(bad_request),
+        ]
+
+        # ALL_COMPLETED: asyncio.wait等到一切都完成后才会返回
+        done, pending = await asyncio.wait(fetchers)
+
+        print(f"Done task count: {len(done)}")
+        print(f"Pending task count: {len(pending)}")
+
+        for done_task in done:
+            result = await done_task
+            print(result)
+
+
+@async_timed()
+async def exception_handling_with_wait_first_exception():
+    # 任何任务抛出异常，wait立即返回
+    # 完成集合(done)包含所有完成的协程以及任何有异常的协程
+    # 挂起(pending)可能为空，也可能存在仍在运行的任务
+    async with aiohttp.ClientSession() as session:
+        fetchers = [
+            asyncio.create_task(fetch_status(session, 'python://bad.com')),
+            asyncio.create_task(fetch_status(session, 'https://www.example.com', delay=3)),
+            asyncio.create_task(fetch_status(session, 'https://www.example.com', delay=3))
+        ]
+
+        done, pending = await asyncio.wait(fetchers, return_when=asyncio.FIRST_EXCEPTION)
+
+        print(f"Done task count: {len(done)}")
+        print(f"Pending task count: {len(pending)}")
+
+        for done_task in done:
+            if done_task.exception() is None:
+                print(done_task.result())
+            else:
+                logging.error("Result got an exception", exc_info=done_task.exception())
+        
+        for pending_task in pending:
+            pending_task.cancel()
+
 # asyncio.run(async_main())
 # asyncio.run(sync_main())
 # asyncio.run(order_main())
 # asyncio.run(except_main())
-asyncio.run(handle_except_main())
+# asyncio.run(handle_except_main())
+# asyncio.run(process_req_when_finish())
+# asyncio.run(process_req_with_timeout())
+# asyncio.run(finer_grained_control_with_wait())
+# asyncio.run(exception_handling_with_wait())
+asyncio.run(exception_handling_with_wait_first_exception())

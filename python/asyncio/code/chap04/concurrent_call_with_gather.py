@@ -158,6 +158,84 @@ async def exception_handling_with_wait_first_exception():
         for pending_task in pending:
             pending_task.cancel()
 
+@async_timed()
+async def process_right_after_corotine():
+    # FIRST_COMPLETED
+    # 协程至少有一个结果的时候立即返回，可以是失败的协程或是成功
+    # 然后可以取消其他正在运行的协程或者调整
+    async with aiohttp.ClientSession() as session:
+        url = "https://www.example.com"
+        fetchers = [
+            asyncio.create_task(fetch_status(session, url)),
+            asyncio.create_task(fetch_status(session,url)),
+            asyncio.create_task(fetch_status(session,url)),
+        ]
+        done, pending = await asyncio.wait(fetchers, return_when=asyncio.FIRST_COMPLETED)
+
+        print(f"Done task count: {len(done)}")
+        print(f"Pending task count: {len(pending)}")
+
+        # for done_task in done:
+            # print(await done_task)
+
+@async_timed()
+async def process_all_tasks():
+    # a while loop for pending tasks
+    async with aiohttp.ClientSession() as session:
+        url = 'https://www.example.com'
+        pending = [
+            asyncio.create_task(fetch_status(session, url)),
+            asyncio.create_task(fetch_status(session,url)),
+            asyncio.create_task(fetch_status(session,url)),
+        ]
+        while pending:
+            done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+
+            print(f"Done task count: {len(done)}")
+            print(f"Pending task count: {len(pending)}")
+            
+            for done_task in done:
+                print(await done_task)
+
+@async_timed()
+async def wait_with_timeout():
+    # task in pending will not be cancelled, it will keep running unless we iter the pending
+    # list and called cancel.
+    async with aiohttp.ClientSession() as session:
+        url = 'https://www.example.com'
+        fetchers = [
+            asyncio.create_task(fetch_status(session, url)),
+            asyncio.create_task(fetch_status(session,url)),
+            asyncio.create_task(fetch_status(session,url, delay=3)),
+        ]
+
+        done, pending = await asyncio.wait(fetchers, timeout=1)
+        
+        print(f"Done task count: {len(done)}")
+        print(f"Pending task count: {len(pending)}")
+        
+        for done_task in done:
+            res = await done_task
+            print(res)
+
+        await asyncio.sleep(2) # this is to verify the pending job is actually still running
+
+async def cancel_slow_request():
+    async with aiohttp.ClientSession() as session:
+        url = 'https://www.example.com'
+        api_a = fetch_status(session, url)
+        api_b = fetch_status(session, url, delay=2)
+
+        done, pending = await asyncio.wait([api_a, api_b], timeout=1)
+
+        print(f"Done task count: {len(done)}")
+        print(f"Pending task count: {len(pending)}")
+
+        for task in pending:   # here pending is task set created by wait 
+            if task is api_b:  # so we wont be able to compare with api_b, a corotine. 
+                print('API B too slow, cancelling')  # that is why we need to encapsulate it with create_task
+                task.cancel()
+
 # asyncio.run(async_main())
 # asyncio.run(sync_main())
 # asyncio.run(order_main())
@@ -167,4 +245,8 @@ async def exception_handling_with_wait_first_exception():
 # asyncio.run(process_req_with_timeout())
 # asyncio.run(finer_grained_control_with_wait())
 # asyncio.run(exception_handling_with_wait())
-asyncio.run(exception_handling_with_wait_first_exception())
+# asyncio.run(exception_handling_with_wait_first_exception())
+# asyncio.run(process_right_after_corotine())
+# asyncio.run(process_all_tasks())
+# asyncio.run(wait_with_timeout())
+asyncio.run(cancel_slow_request())

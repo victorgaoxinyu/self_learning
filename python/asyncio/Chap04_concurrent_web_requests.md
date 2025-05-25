@@ -82,4 +82,21 @@ class _GatheringFuture(asyncio.Future):
 - 缺点：
   - 由于运行顺序non deterministic，不知道当前是什么任务
   - 异常时不知道后台哪些任务仍在运行，also caused by non determinism
-  - 
+
+### asyncio.wait
+
+- `done, pending = await asyncio.wait(fetchers, return_when=ALL_COMPLETED)`
+- or `FIRST_EXCEPTION` or `FIRST_COMPLETED`
+
+timeout handling
+
+- 使用wait的时候如果超时，协程不会被取消，除非显式的遍历任务并取消
+- 如果发生超时，wait不会引发超时错误，返回所有已完成的任务，以及发生超时时仍处于挂起状态的任务
+
+## Summary
+
+- async context manager, and get async resources
+- aiohttp, nonblocking web request package
+- asyncio.gather
+- as_completed
+- wait

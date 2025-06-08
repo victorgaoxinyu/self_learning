@@ -51,6 +51,37 @@ async def stream_single_element_a_time():
             async for product in connection.cursor(query):
                 print(product)
 
-# asyncio.run(main())
 
-asyncio.run(stream_single_element_a_time())
+async def move_cursor_and_fetch():
+    async with ConnectedPostgres() as connection:
+        query = 'SELECT product_id, product_name FROM product'
+        async with connection.transaction():
+            cursor = await connection.cursor(query)
+            await cursor.forward(500)
+            products = await cursor.fetch(100)  # this impl does not contain generator
+            for product in products:
+                print(product)
+
+
+async def take(generator, to_take: int):
+    item_count = 0
+    async for item in generator:
+        if item_count > to_take - 1:
+            return
+        item_count = item_count + 1
+        yield item
+
+
+async def async_generator():
+    async with ConnectedPostgres() as connection:
+        async with connection.transaction():
+            query = 'SELECT product_id, product_name FROM product'
+            product_generator = connection.cursor(query)
+            async for product in take(product_generator, 5):
+                print(product)
+
+
+# asyncio.run(main())
+# asyncio.run(stream_single_element_a_time())
+# asyncio.run(move_cursor_and_fetch())
+asyncio.run(async_generator())

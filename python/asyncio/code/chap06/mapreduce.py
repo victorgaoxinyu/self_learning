@@ -1,5 +1,9 @@
+import time
 import functools
-from typing import Dict
+from typing import Dict, List
+
+
+
 
 def map_freq(text: str) -> Dict[str, int]:
     words = text.split(' ')
@@ -23,15 +27,16 @@ def merge_dicts(first, second):
 
     return merged
 
+if __name__ == "__main__":
 
-lines = ["I know what I know",
-        "I know that I know",
-        "I don’t know that much",
-        "They don’t know much"]
+    lines = ["I know what I know",
+            "I know that I know",
+            "I don’t know that much",
+            "They don’t know much"]
 
-mapped_results = [map_freq(line) for line in lines]
+    mapped_results = [map_freq(line) for line in lines]
 
-for result in mapped_results:
-    print(result)
+    for result in mapped_results:
+        print(result)
 
-print(functools.reduce(merge_dicts, mapped_results))
+    print(functools.reduce(merge_dicts, mapped_results))

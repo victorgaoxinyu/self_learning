@@ -1,6 +1,7 @@
 import time
 import concurrent.futures
 import asyncio
+from collections import Counter
 import functools
 from typing import Dict, List
 from pathlib import Path
@@ -34,15 +35,21 @@ def partition(data: List, chunk_size: int):
 
 
 def map_freq(chunk: List[str]) -> Dict[str, int]:
-    counter = {}
-    for line in chunk:
-        word, _, count, _ = line.split('\t')
-        if counter.get(word):
-            counter[word] += int(count)
-        else:
-            counter[word] = int(count)
+    return Counter(
+        {
+            line.split("\t")[0]: int(line.split("\t")[2])
+            for line in chunk
+        }
+    )
+    # counter = {}
+    # for line in chunk:
+    #     word, _, count, _ = line.split('\t')
+    #     if counter.get(word):
+    #         counter[word] += int(count)
+    #     else:
+    #         counter[word] = int(count)
 
-    return counter
+    # return counter
 
 async def async_check_word_freq(partition_size: int):
     with open(filepath.resolve(), encoding="utf-8") as f:

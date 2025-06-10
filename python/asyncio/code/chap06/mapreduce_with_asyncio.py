@@ -68,6 +68,7 @@ async def async_check_word_freq(partition_size: int):
         end = time.time()
 
         print(f"Async took: {end - start:.4f}")
+        print(f"Aardvark has appeared {final_result['Aardvark']} times")
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
 from threading import Thread
+import random
 from queue import Queue
 import asyncio
 from concurrent.futures import Future
@@ -29,21 +30,29 @@ class StressTest:
         self._total_requests = total_requests
         self._callback = callback
         self._refresh_rate = total_requests // 100
+        self._tasks: list[asyncio.Task] = []
 
     def start(self):
         future = asyncio.run_coroutine_threadsafe(self._make_requests(), self._loop)
         self._load_test_future = future
     
     def cancel(self):
-        if self._load_test_future:
-            self._loop.call_soon_threadsafe(self._load_test_future.cancel)
+        for task in self._tasks:
+            self._loop.call_soon_threadsafe(task.cancel)
     
+        self._load_test_future.cancel()
+
     async def _get_url(self, session: ClientSession, url: str):
         try:
+            await asyncio.sleep(random.uniform(0.05, 1))
             await session.get(url)
+        except asyncio.CancelledError:
+            return  # task cancelled
         except Exception as e:
             print(e)
-        
+
+        print(f"Completed {self._completed_requests}/{self._total_requests}")
+
         self._completed_requests = self._completed_requests + 1
         if self._completed_requests % self._refresh_rate == 0 \
             or self._completed_requests == self._total_requests:
@@ -52,7 +61,7 @@ class StressTest:
     async def _make_requests(self):
         async with ClientSession() as session:
             reqs = [self._get_url(session, self._url) for _ in range(self._total_requests)]
-            await asyncio.gather(*reqs)
+            await asyncio.gather(*reqs, return_exceptions=True)
 
 
 class LoadTester(tk.Tk):
@@ -91,7 +100,7 @@ class LoadTester(tk.Tk):
     def _update_bar(self, pct: int):
         if pct == 100:
             self._load_test = None
-            self._submit['text'] == 'Finished!'
+            self._submit['text'] = 'Finished!'
         else:
             self._pb['value'] = pct
             self.after(self._refresh_ms, self._poll_queue)
@@ -101,12 +110,12 @@ class LoadTester(tk.Tk):
         self._queue.put(int(completed_requests / total_requests * 100))
 
     def _poll_queue(self):
-        if not self._queue.empty():
-            percent_compelte = self._queue.get()
-            self._update_bar(percent_compelte)
-        else:
-            if self._load_test:
-                self.after(self._refresh_ms, self._poll_queue)
+        while not self._queue.empty():
+            percent_complete = self._queue.get()
+            self._update_bar(percent_complete)
+
+        if self._load_test:
+            self.after(self._refresh_ms, self._poll_queue)
     
     def _start(self):
         if self._load_test is None:

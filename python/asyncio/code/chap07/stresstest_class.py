@@ -30,15 +30,12 @@ class StressTest:
         self._total_requests = total_requests
         self._callback = callback
         self._refresh_rate = total_requests // 100
-        self._tasks: list[asyncio.Task] = []
 
     def start(self):
         future = asyncio.run_coroutine_threadsafe(self._make_requests(), self._loop)
         self._load_test_future = future
     
     def cancel(self):
-        for task in self._tasks:
-            self._loop.call_soon_threadsafe(task.cancel)
     
         self._load_test_future.cancel()
 

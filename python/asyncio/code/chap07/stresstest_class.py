@@ -49,7 +49,8 @@ class StressTest:
             print(e)
 
         print(f"Completed {self._completed_requests}/{self._total_requests}")
-
+        print(f"Ready: {len(self._loop._ready)}, Scheduled: {len(self._loop._scheduled)}")
+        
         self._completed_requests = self._completed_requests + 1
         if self._completed_requests % self._refresh_rate == 0 \
             or self._completed_requests == self._total_requests:

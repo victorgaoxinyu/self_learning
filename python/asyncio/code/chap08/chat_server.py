@@ -49,13 +49,27 @@ class ChatServer:
     async def _listen_for_messages(self, username: str, reader: StreamReader):
         try:
             while (data := await asyncio.wait_for(reader.readline(), 60)) != b'':
-                # FIXME: exclude myself
-                await self._notify_all(f'{username}: {data.decode()}')
+                await self._notify_others(username, data.decode())
             
             await self._notify_all(f'{username} has left the chat\n')
         except Exception as e:
             logging.exception('Error reading from client.', exc_info=e)
             await self._remove_user(username)
+        
+    async def _notify_others(self, sender: str, message: str):
+        inactive_users = []
+        for username, writer in self._username_to_writer.items():
+            if username == sender:
+                continue
+            try:
+                writer.write(f"{sender}: {message}".encode())
+                await writer.drain()
+            except ConnectionError as e:
+                logging.exception('Could not write to client.', exc_info=e)
+                inactive_users.append(username)
+        
+        [await self._remove_user(username) for username in inactive_users]
+
 
     async def _notify_all(self, message: str):
         inactive_users = []

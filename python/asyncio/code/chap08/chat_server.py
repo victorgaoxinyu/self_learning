@@ -19,7 +19,7 @@ class ChatServer:
         print(f'CONNECTED {reader} {writer}')
         command, args = command.split(b' ')
         if command == b'CONNECT':
-            username = args.replace(b'\r\n', b'').decode()
+            username = args.replace(b'\n', b'').decode()
             self._add_user(username, reader, writer)
             await self._on_connect(username, writer)
         else:
@@ -49,7 +49,9 @@ class ChatServer:
     async def _listen_for_messages(self, username: str, reader: StreamReader):
         try:
             while (data := await asyncio.wait_for(reader.readline(), 60)) != b'':
-                await self._notify_others(username, data.decode())
+                # await self._notify_others(username, data.decode())
+                data = data.replace(b'\r', b'')
+                await self._notify_all(f"{username}: {data.decode()}")
             
             await self._notify_all(f'{username} has left the chat\n')
         except Exception as e:

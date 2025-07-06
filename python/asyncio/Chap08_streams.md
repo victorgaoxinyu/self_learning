@@ -96,3 +96,16 @@ Create another echo server
 - echo user input
 - show how many other clients are connected
 
+### Chat Server and Chat Client
+
+Server:
+
+- client can connect to server once user name provided
+- once connected user can send server msg, and each msg can send to all users
+- idle 1min and disconnect user
+
+Client:
+
+- prompt to input user name, try to connect to server
+- user can see other msg from top to bottom rolling
+- bottom has input section, when hit Enter

@@ -21,7 +21,7 @@ def delete_line():
 
 
 def clear_line():
-    sys.stdout.write('\033[2K\033\[0G')  # ESC[0G: move cursor to column 0
+    sys.stdout.write('\033[2K\033[0G')  # ESC[0G: move cursor to column 0
 
 
 def move_back_one_char():
